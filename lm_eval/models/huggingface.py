@@ -41,7 +41,7 @@ from lm_eval.models.utils import (
 
 
 eval_logger = logging.getLogger(__name__)
-
+from composable_ai.extension_layers import  load_adapter_model
 
 @register_model("hf-auto", "hf", "huggingface")
 class HFLM(TemplateLM):
@@ -92,6 +92,7 @@ class HFLM(TemplateLM):
         autogptq: Optional[Union[bool, str]] = False,
         gptqmodel: Optional[bool] = False,
         gguf_file: Optional[str] = None,
+        dext: Optional[bool] =  False,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -112,6 +113,7 @@ class HFLM(TemplateLM):
             assert isinstance(device, str)
             assert isinstance(pretrained, str)
             assert isinstance(batch_size, (int, str))
+                
 
             gpus = torch.cuda.device_count()
             accelerator_kwargs = InitProcessGroupKwargs(timeout=timedelta(weeks=52))
@@ -203,6 +205,7 @@ class HFLM(TemplateLM):
                 autogptq=autogptq,
                 gptqmodel=gptqmodel,
                 gguf_file=gguf_file,
+                dext=dext,
                 **kwargs,
             )
 
@@ -545,6 +548,7 @@ class HFLM(TemplateLM):
         autogptq: Optional[Union[bool, str]] = False,
         gptqmodel: Optional[bool] = False,
         gguf_file: Optional[str] = None,
+        dext: Optional[bool] = False,
         **kwargs,
     ) -> None:
         """
@@ -571,8 +575,11 @@ class HFLM(TemplateLM):
                 gpus=gpus,
             )
         )
-
-        if not autogptq and not gptqmodel:
+        if dext:
+            self._model = load_adapter_model(transformers.AutoModelForCausalLM, transformers.AutoConfig, pretrained)
+            print("Applying DEXT")
+            print(self._model)
+        elif not autogptq and not gptqmodel:
             if model_kwargs.get("load_in_4bit", None):
                 assert transformers.__version__ >= "4.30.0", (
                     "load_in_4bit requires transformers >= 4.30.0"
@@ -671,6 +678,8 @@ class HFLM(TemplateLM):
                     )
 
             del _model_delta
+
+
 
         return None
 
