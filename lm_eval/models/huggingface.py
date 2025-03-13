@@ -577,6 +577,7 @@ class HFLM(TemplateLM):
         )
         if dext:
             self._model = load_adapter_model(transformers.AutoModelForCausalLM, transformers.AutoConfig, pretrained)
+            self._model = self._model.cuda()
             print("Applying DEXT")
             print(self._model)
         elif not autogptq and not gptqmodel:
